@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+//returns the homepage state, uses the createstate lifecycle method, the first to build the app
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -10,12 +10,37 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+//Private state HomePageState
 class _HomePageState extends State<HomePage> {
   final FirebaseFirestore db =
       FirebaseFirestore.instance; //new firestore instance
   final TextEditingController nameController =
       TextEditingController(); //captures textform input
   final List<Map<String, dynamic>> tasks = [];
+
+//Function that adds new tasks to local state & firestore database
+  Future<void> addTask() async {
+    final taskName = nameController.text.trim();
+
+    if (taskName.isNotEmpty) {
+      final newTask = {
+        'name': taskName,
+        'completed': false,
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+
+      //docRef gives us the insertion id of the task from the database
+      final docRef = await db.collection('tasks').add(newTask);
+
+      //adding tasks locally
+      setState(() {
+        tasks.add({
+          'id': docRef,
+          ...newTask,
+        });
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,20 +77,31 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          buildAddTaskSection(nameController),
+          buildAddTaskSection(nameController, addTask), //modularization of code
         ],
       ),
+      drawer: Drawer(),
     );
   }
 }
 
 //Build the section for adding tasks
-Widget buildAddTaskSection(nameController) {
-  return TextField(
-    controller: nameController,
-    decoration: const InputDecoration(
-      labelText: 'Add Task',
-      border: OutlineInputBorder(),
-    ),
+Widget buildAddTaskSection(nameController, addTask) {
+  return Row(
+    children: [
+      Expanded(
+        child: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Add Task',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+      ElevatedButton(
+        onPressed: addTask,
+        child: const Text('Add Task'),
+      ),
+    ],
   );
 }
