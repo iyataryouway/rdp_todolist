@@ -120,7 +120,7 @@ class _HomePageState extends State<HomePage> {
                     firstDay: DateTime(2024),
                     lastDay: DateTime(2025),
                   ),
-                  buildTaskList(tasks, removeTasks)
+                  buildTaskList(tasks, removeTasks, updateTask)
                 ],
               ),
             ),
@@ -167,7 +167,7 @@ Widget buildAddTaskSection(nameController, addTask) {
 }
 
 //Widget that displays the task item on the UI
-Widget buildTaskList(tasks, removeTasks) {
+Widget buildTaskList(tasks, removeTasks, updateTask) {
   return ListView.builder(
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
@@ -196,9 +196,8 @@ Widget buildTaskList(tasks, removeTasks) {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Checkbox(
-                    value: task['completed'],
-                    onChanged: null,
-                  ),
+                      value: task['completed'],
+                      onChanged: (value) => updateTask(index, value!)),
                   IconButton(
                     icon: const Icon(Icons.delete),
                     onPressed: () => removeTasks(index),
