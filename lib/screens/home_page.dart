@@ -18,6 +18,28 @@ class _HomePageState extends State<HomePage> {
       TextEditingController(); //captures textform input
   final List<Map<String, dynamic>> tasks = [];
 
+  @override
+  void initState() {
+    super.initState();
+    fetchTasks();
+  }
+
+//Fetch tasks from the firestore and update the local task list
+  Future<void> fetchTasks() async {
+    final snapshot = await db.collection('tasks').orderBy('timestamp').get();
+
+    setState(() {
+      tasks.clear();
+      tasks.addAll(
+        snapshot.docs.map((doc) => {
+              'id': doc.id,
+              'name': doc.get('name'),
+              'completed': doc.get('completed') ?? false,
+            }),
+      );
+    });
+  }
+
 //Function that adds new tasks to local state & firestore database
   Future<void> addTask() async {
     final taskName = nameController.text.trim();
@@ -35,11 +57,36 @@ class _HomePageState extends State<HomePage> {
       //adding tasks locally
       setState(() {
         tasks.add({
-          'id': docRef,
+          'id': docRef.id,
           ...newTask,
         });
       });
+      nameController.clear();
     }
+  }
+
+//Updates the completion status of the task in Firestore & locally
+  Future<void> updateTask(int index, bool completed) async {
+    final task = tasks[index];
+    await db
+        .collection('tasks')
+        .doc(task['id'])
+        .update({'completed': completed});
+
+    setState(() {
+      tasks[index]['completed'] = completed;
+    });
+  }
+
+//Delete the task locally & in the Firestore
+  Future<void> removeTasks(int index) async {
+    final task = tasks[index];
+
+    await db.collection('tasks').doc(task['id']).delete();
+
+    setState(() {
+      tasks.removeAt(index);
+    });
   }
 
   @override
@@ -73,35 +120,91 @@ class _HomePageState extends State<HomePage> {
                     firstDay: DateTime(2024),
                     lastDay: DateTime(2025),
                   ),
+                  buildTaskList(tasks, removeTasks)
                 ],
               ),
             ),
           ),
+
           buildAddTaskSection(nameController, addTask), //modularization of code
         ],
       ),
-      drawer: Drawer(),
+      drawer: const Drawer(),
     );
   }
 }
 
 //Build the section for adding tasks
 Widget buildAddTaskSection(nameController, addTask) {
-  return Row(
-    children: [
-      Expanded(
-        child: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Add Task',
-            border: OutlineInputBorder(),
+  return Container(
+    decoration: const BoxDecoration(
+      color: Colors.white,
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              maxLength: 32,
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Add Task',
+                border: OutlineInputBorder(),
+              ),
+            ),
           ),
-        ),
+          Center(
+            child: ElevatedButton(
+              onPressed: addTask,
+              child: const Text('Add Task'),
+            ),
+          ),
+        ],
       ),
-      ElevatedButton(
-        onPressed: addTask,
-        child: const Text('Add Task'),
-      ),
-    ],
+    ),
+  );
+}
+
+//Widget that displays the task item on the UI
+Widget buildTaskList(tasks, removeTasks) {
+  return ListView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    itemCount: tasks.length,
+    itemBuilder: (context, index) {
+      final task = tasks[index];
+      final isEven = index % 2 == 0;
+
+      return Padding(
+          padding: const EdgeInsets.all(1.0),
+          child: ListTile(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              tileColor: isEven ? Colors.blue : Colors.lightBlue,
+              leading: Icon(
+                task['completed'] ? Icons.check_circle : Icons.circle_outlined,
+              ),
+              title: Text(
+                task['name'],
+                style: TextStyle(
+                    decoration:
+                        task['completed'] ? TextDecoration.lineThrough : null,
+                    fontSize: 22),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Checkbox(
+                    value: task['completed'],
+                    onChanged: null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => removeTasks(index),
+                  ),
+                ],
+              )));
+    },
   );
 }
