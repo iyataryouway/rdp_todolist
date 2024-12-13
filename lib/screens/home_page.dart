@@ -1,3 +1,6 @@
+//code submitted by: Iyanah Camille Taryouway
+
+//import essential flutter and firestore packages
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -12,11 +15,12 @@ class HomePage extends StatefulWidget {
 
 //Private state HomePageState
 class _HomePageState extends State<HomePage> {
-  final FirebaseFirestore db =
-      FirebaseFirestore.instance; //new firestore instance
+  final FirebaseFirestore db = FirebaseFirestore
+      .instance; //new firestore instance initialized, capture input to db
   final TextEditingController nameController =
-      TextEditingController(); //captures textform input
-  final List<Map<String, dynamic>> tasks = [];
+      TextEditingController(); //captures textform input - text field controller
+  final List<Map<String, dynamic>> tasks =
+      []; //create list to fetch tasks to be added to firestore db
 
   @override
   void initState() {
@@ -24,7 +28,7 @@ class _HomePageState extends State<HomePage> {
     fetchTasks();
   }
 
-//Fetch tasks from the firestore and update the local task list
+//Async function to fetch tasks from the firestore and update the task list
   Future<void> fetchTasks() async {
     final snapshot = await db.collection('tasks').orderBy('timestamp').get();
 
@@ -65,7 +69,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-//Updates the completion status of the task in Firestore & locally
+//Syncs the completion status of the task in Firestore
   Future<void> updateTask(int index, bool completed) async {
     final task = tasks[index];
     await db
@@ -78,7 +82,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-//Delete the task locally & in the Firestore
+//Function to dlete the task locally & in the Firestore
   Future<void> removeTasks(int index) async {
     final task = tasks[index];
 
@@ -98,7 +102,8 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Expanded(
-              child: Image.asset('assets/rdplogo.png', height: 80),
+              child: Image.asset('assets/rdplogo.png',
+                  height: 80), // import rdp logo to decorate top app bar
             ),
             const Text(
               'Daily Planner',
@@ -112,6 +117,7 @@ class _HomePageState extends State<HomePage> {
         children: [
           Expanded(
             child: SingleChildScrollView(
+              //Create scrollable instance with table calendar
               child: Column(
                 children: [
                   TableCalendar(
@@ -120,7 +126,8 @@ class _HomePageState extends State<HomePage> {
                     firstDay: DateTime(2024),
                     lastDay: DateTime(2025),
                   ),
-                  buildTaskList(tasks, removeTasks, updateTask)
+                  buildTaskList(tasks, removeTasks,
+                      updateTask) //display list of tasks, call parameters to remove tasks and update tasks in the list
                 ],
               ),
             ),
@@ -129,7 +136,7 @@ class _HomePageState extends State<HomePage> {
           buildAddTaskSection(nameController, addTask), //modularization of code
         ],
       ),
-      drawer: const Drawer(),
+      drawer: const Drawer(), //add a drawer to the appbar
     );
   }
 }
@@ -166,7 +173,7 @@ Widget buildAddTaskSection(nameController, addTask) {
   );
 }
 
-//Widget that displays the task item on the UI
+//Widget that displays the task item on the UI, includes options to delete tasks and update tasks as well (passed as parameters)
 Widget buildTaskList(tasks, removeTasks, updateTask) {
   return ListView.builder(
     shrinkWrap: true,
@@ -181,15 +188,22 @@ Widget buildTaskList(tasks, removeTasks, updateTask) {
           child: ListTile(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
-              tileColor: isEven ? Colors.blue : Colors.lightBlue,
+              tileColor: isEven
+                  ? Colors.blue
+                  : Colors
+                      .lightBlue, //default background color of task when added to list. Alternating blue and light blue on the list
               leading: Icon(
-                task['completed'] ? Icons.check_circle : Icons.circle_outlined,
+                task['completed']
+                    ? Icons.check_circle
+                    : Icons
+                        .circle_outlined, //If task is completed already, the circle icon will be checked. If not yet, it will remain outlined
               ),
               title: Text(
                 task['name'],
                 style: TextStyle(
-                    decoration:
-                        task['completed'] ? TextDecoration.lineThrough : null,
+                    decoration: task['completed']
+                        ? TextDecoration.lineThrough
+                        : null, // if item checked as completed already, draw a line through the text
                     fontSize: 22),
               ),
               trailing: Row(
@@ -197,10 +211,12 @@ Widget buildTaskList(tasks, removeTasks, updateTask) {
                 children: [
                   Checkbox(
                       value: task['completed'],
-                      onChanged: (value) => updateTask(index, value!)),
+                      onChanged: (value) => updateTask(index,
+                          value!)), //if checkbox is checked, task status is updated as completed
                   IconButton(
                     icon: const Icon(Icons.delete),
-                    onPressed: () => removeTasks(index),
+                    onPressed: () => removeTasks(
+                        index), //if delete button is pressed, task is deleted
                   ),
                 ],
               )));
